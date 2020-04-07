@@ -18,7 +18,18 @@ import android.widget.Button;
 import android.widget.GridView;
 import android.widget.Toast;
 
+import com.amazonaws.auth.CognitoCachingCredentialsProvider;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
+
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -71,6 +82,23 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
+                if (mArrayUri.size() < 0)
+                {
+                    Toast.makeText(MainActivity.this,"Please Select any Image from Gallery or Camera ",Toast.LENGTH_SHORT).show();
+                }
+                else
+                {
+                    for (int i = 0;i<mArrayUri.size();i++)
+                    {
+                        File file = new File(mArrayUri.get(i).getPath());
+                        Log.d("ip","----------file "+file);
+
+                        if(file != null)
+                        {
+                            uploadtos3(MainActivity.this,file);
+                        }
+                    }
+                }
             }
         });
 
@@ -179,5 +207,58 @@ public class MainActivity extends AppCompatActivity {
         inImage.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
         String path = MediaStore.Images.Media.insertImage(inContext.getContentResolver(), inImage, "Title", null);
         return Uri.parse(path);
+    }
+
+    public static void uploadtos3 (final Context context, final File file)
+    {
+        if(file !=null)
+        {
+            CognitoCachingCredentialsProvider credentialsProvider;
+            credentialsProvider = new CognitoCachingCredentialsProvider(
+                    context, "your identity pool id", // Identity Pool ID
+                     Regions.AP_SOUTH_1 // Region
+            );
+
+            AmazonS3 s3 = new AmazonS3Client(credentialsProvider);
+
+            TransferUtility transferUtility = new TransferUtility(s3, context);
+
+            final TransferObserver observer = transferUtility.upload(
+                    "bucket name", //this is the bucket name on S3
+                    file.getName(), file, CannedAccessControlList.PublicRead //to make the file public
+            );
+            observer.setTransferListener(new TransferListener() {
+                @Override
+                public void onStateChanged(int id, TransferState state) {
+                    if (state.equals(TransferState.COMPLETED)) {
+                    }
+                    else if (state.equals(TransferState.FAILED))
+                    {
+                        Toast.makeText(context,"Failed to upload",Toast.LENGTH_LONG).show();
+                    }
+                }
+                @Override
+                public void onProgressChanged(int id, long bytesCurrent, long bytesTotal)
+                {
+                }
+                @Override
+                public void onError(int id, Exception ex)
+                {
+
+                }
+            });
+        }
+    }
+
+    public String getPath(Uri uri)
+    {
+        String[] projection = { MediaStore.Images.Media.DATA };
+        Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
+        if (cursor == null) return null;
+        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+        cursor.moveToFirst();
+        String s=cursor.getString(column_index);
+        cursor.close();
+        return s;
     }
 }
