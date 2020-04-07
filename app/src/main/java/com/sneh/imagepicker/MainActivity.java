@@ -10,6 +10,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
@@ -30,6 +31,10 @@ import com.amazonaws.services.s3.model.CannedAccessControlList;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -90,12 +95,35 @@ public class MainActivity extends AppCompatActivity {
                 {
                     for (int i = 0;i<mArrayUri.size();i++)
                     {
-                        File file = new File(mArrayUri.get(i).getPath());
-                        Log.d("ip","----------file "+file);
+                        Bitmap bitmap = null;
+                        try {
+                            bitmap = MediaStore.Images.Media.getBitmap(MainActivity.this.getContentResolver(), Uri.parse(mArrayUri.get(i).toString()));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            Log.d("ip", "----------bitmap error " + e.getMessage().toString());
+                        }
 
-                        if(file != null)
+                        Log.d("ip","----------filee "+bitmap);
+
+                        File filesDir = MainActivity.this.getFilesDir();
+                        File imageFile = new File(filesDir, "img"+i + ".jpg");
+
+                        OutputStream os;
+                        try {
+                            os = new FileOutputStream(imageFile);
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, os);
+                            os.flush();
+                            os.close();
+                        } catch (Exception e) {
+                            Log.e(getClass().getSimpleName(), "Error writing bitmap", e);
+                        }
+
+                        Log.d("ip", "----------filename " +imageFile);
+
+
+                        if(imageFile != null)
                         {
-                            uploadtos3(MainActivity.this,file);
+                            uploadtos3(MainActivity.this,imageFile);
                         }
                     }
                 }
@@ -248,17 +276,5 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
-    }
-
-    public String getPath(Uri uri)
-    {
-        String[] projection = { MediaStore.Images.Media.DATA };
-        Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
-        if (cursor == null) return null;
-        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-        cursor.moveToFirst();
-        String s=cursor.getString(column_index);
-        cursor.close();
-        return s;
     }
 }
