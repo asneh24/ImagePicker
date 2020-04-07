@@ -29,7 +29,7 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 2500;
     private static final int PERMISSION_REQUEST_CODE1 = 2700;
-    private Button btngallery,btncamera;
+    private Button btngallery,btncamera,btnupload;
     int PICK_IMAGE_MULTIPLE = 1;
     String imageEncoded;
     List<String> imagesEncodedList;
@@ -44,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
 
         btngallery = findViewById(R.id.btngallery);
         btncamera = findViewById(R.id.btncamera);
+        btnupload = findViewById(R.id.btnupload);
         gvGallery = findViewById(R.id.gv);
         mArrayUri = new ArrayList<Uri>();
         btngallery.setOnClickListener(new View.OnClickListener() {
@@ -63,6 +64,13 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
                 startActivityForResult(cameraIntent, PERMISSION_REQUEST_CODE1);
+            }
+        });
+
+        btnupload.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
             }
         });
 
